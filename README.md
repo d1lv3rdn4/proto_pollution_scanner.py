@@ -59,10 +59,10 @@ Enter target URL (e.g., https://example.com): https://vulnerable-app.com
 [+] Detected JS library: jquery 3.3.1 (VULNERABLE - CVE-2020-11022, CVE-2020-11023)
 
 [*] Launching payload fuzzing on target endpoints...
-[+] POST https://vulnerable-app.com/api/ -> 200
-[+] GET  https://vulnerable-app.com/api/?__proto__=%7Bpolluted%3A%22true%22%7D -> 200
-[+] POST https://vulnerable-app.com/v1/ -> 404
-[+] GET  https://vulnerable-app.com/debug/?constructor.prototype.polluted=true -> 200
+[+] POST /api/ -> 200
+[+] GET  /api/?__proto__=%7Bpolluted%3A%22true%22%7D -> 200
+[+] POST /v1/ -> 404
+[+] GET  /debug/?constructor.prototype.polluted=true -> 200
 ...
 
 [*] Payload fuzzing complete.
