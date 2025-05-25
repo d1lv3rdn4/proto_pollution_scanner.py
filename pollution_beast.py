@@ -33,21 +33,83 @@ METHODS = ["GET", "POST"]
 HTML_TEMPLATE = """
 <!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>Prototype Pollution Scanner Report</title>
-<style>body{font-family:sans-serif;background:#111;color:#eee;padding:20px}
-h1{color:#ff4081}code{background:#222;padding:4px;border-radius:5px}
-.success{color:#00ff99} .vuln{color:#ff5c5c;font-weight:bold}
-</style></head><body>
+<style>
+body { font-family: sans-serif; background: #111; color: #eee; padding: 20px; }
+h1 { color: #ff4081; }
+code { background: #222; padding: 4px; border-radius: 5px; }
+.success { color: #00ff99; }
+.vuln { color: #ff5c5c; font-weight: bold; }
+pre { background: #1e1e1e; padding: 10px; border-radius: 10px; overflow-x: auto; }
+</style></head>
+<body>
 <h1>🧬 Pollution Scan Report</h1>
 <p><strong>Target:</strong> {{ target }}</p>
+
 <h2>🛠️ Detected JS Libraries</h2>
-<ul>{% for lib in libs %}<li><code>{{ lib.name }} {{ lib.version }}</code> {% if lib.vulnerable %}<span class="vuln">(Vulnerable - {{ lib.cves | join(', ') }})</span>{% endif %}</li>{% endfor %}</ul>
+<ul>
+{% for lib in libs %}
+  <li><code>{{ lib.name }} {{ lib.version }}</code>
+  {% if lib.vulnerable %}
+    <span class="vuln">(Vulnerable - {{ lib.cves | join(', ') }})</span>
+  {% endif %}
+  </li>
+{% endfor %}
+</ul>
+
 <h2>🚨 Confirmed Polluted Properties</h2>
-{% if polluted %}<ul>{% for prop in polluted %}<li class="success"><code>{{ prop }}</code></li>{% endfor %}</ul>
-{% else %}<p>No prototype pollution detected in runtime.</p>{% endif %}
+{% if polluted %}
+  <ul>{% for prop in polluted %}
+    <li class="success"><code>{{ prop }}</code></li>
+  {% endfor %}</ul>
+{% else %}
+  <p>No prototype pollution detected in runtime.</p>
+{% endif %}
+
 <h2>🧪 Payloads Used</h2>
 <pre>{{ payloads }}</pre>
+
+<h2>💥 Exploitation Guide</h2>
+{% for lib in libs if lib.vulnerable %}
+<pre>
+Vulnerability: Prototype Pollution via {{ lib.name }}
+
+CVE(s): {{ lib.cves | join(', ') }}
+Detected Version: {{ lib.version }}
+
+Description:
+{{ lib.name }} versions {{ lib.version }} allow attackers to modify the global Object prototype by injecting special keys like "__proto__" or "constructor.prototype" into objects passed to insecure deep merge functions.
+
+Exploitation:
+1. Inject this payload into a vulnerable endpoint:
+   {{ lib.payloads[0] }}
+
+2. Trigger the backend or frontend code that uses:
+   - lodash.merge(), _.defaultsDeep(), jQuery.extend(), or similar.
+
+3. Confirm success:
+   Open the browser console and type:
+     console.log({}.polluted);  // Should return "true"
+
+4. Impact:
+   - Escalate privileges (e.g., isAdmin bypass)
+   - Tamper with all objects in scope
+   - Potential RCE in edge cases
+
+Mitigation:
+- Upgrade {{ lib.name }} to a patched version (e.g., >= 4.17.21 for Lodash)
+- Block keys: "__proto__", "constructor", "prototype"
+- Use secure deep merge libraries
+
+CVE References:
+{% for cve in lib.cves %}
+- https://cve.mitre.org/cgi-bin/cvename.cgi?name={{ cve }}
+{% endfor %}
+</pre>
+{% endfor %}
+
 </body></html>
 """
+
 
 # === SCRIPT PARSER TO DETECT VULNERABLE LIBRARIES ===
 def detect_js_libs(page_source):
