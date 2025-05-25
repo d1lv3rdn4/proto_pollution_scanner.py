@@ -46,6 +46,16 @@ Actual working PoC
 Mitigation steps
 CVE links
 
+🔎 Advanced JS library detection (Lodash, jQuery, Underscore, Handlebars, Vue, etc.)
+
+🌐 Dynamic endpoint discovery from JS parsing (not just static paths)
+
+💉 Expanded and obfuscated prototype pollution payloads
+
+🛡️ WAF and honeypot detection logic
+
+📊 Enhanced colored output and runtime pollution confirmation
+
 🔥 All in one file — no modules, no nonsense.
 
 It includes:
