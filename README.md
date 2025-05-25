@@ -60,3 +60,12 @@ It includes:
 
 🔐 CVE severity labels with links
 
+_______________________________________________________________________________________________
+
+❌ What It Does Not Do (Yet)
+Doesn’t brute-force hidden endpoints (use gau, ffuf, etc. for that)
+
+Doesn’t try advanced chained exploits (yet)
+
+Doesn’t log backend behavior (e.g., server logs, auth bypass unless it’s visible on frontend)
+
