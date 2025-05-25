@@ -31,16 +31,30 @@ METHODS = ["GET", "POST"]
 
 # === HTML TEMPLATE ===
 HTML_TEMPLATE = """
-<!DOCTYPE html><html><head><meta charset="UTF-8">
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
 <title>Prototype Pollution Scanner Report</title>
 <style>
 body { font-family: sans-serif; background: #111; color: #eee; padding: 20px; }
 h1 { color: #ff4081; }
-code { background: #222; padding: 4px; border-radius: 5px; }
+h2 { margin-top: 30px; }
+code { background: #222; padding: 4px 6px; border-radius: 5px; }
+pre { background: #1e1e1e; padding: 12px; border-radius: 10px; overflow-x: auto; }
 .success { color: #00ff99; }
 .vuln { color: #ff5c5c; font-weight: bold; }
-pre { background: #1e1e1e; padding: 10px; border-radius: 10px; overflow-x: auto; }
-</style></head>
+button { margin-top: 5px; background: #444; color: #fff; padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; }
+button:hover { background: #666; }
+</style>
+<script>
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    alert("Copied to clipboard!");
+  });
+}
+</script>
+</head>
 <body>
 <h1>🧬 Pollution Scan Report</h1>
 <p><strong>Target:</strong> {{ target }}</p>
@@ -66,49 +80,64 @@ pre { background: #1e1e1e; padding: 10px; border-radius: 10px; overflow-x: auto;
 {% endif %}
 
 <h2>🧪 Payloads Used</h2>
-<pre>{{ payloads }}</pre>
+{% for payload in payloads %}
+<div style="margin-bottom: 12px;">
+  <pre>{{ payload | tojson }}</pre>
+  <button onclick="copyToClipboard(`curl -X POST '{{ target }}/api/config' -H 'Content-Type: application/json' -d '{{ payload | tojson }}'`)">📋 Copy curl</button>
+</div>
+{% endfor %}
 
 <h2>💥 Exploitation Guide</h2>
 {% for lib in libs if lib.vulnerable %}
 <pre>
 Vulnerability: Prototype Pollution via {{ lib.name }}
 
-CVE(s): {{ lib.cves | join(', ') }}
+CVE(s): {% for cve in lib.cves %}{{ cve }} [<span style="color:#ff9933;">CVSS 7.5 - HIGH</span>]{% if not loop.last %}, {% endif %}{% endfor %}
 Detected Version: {{ lib.version }}
 
 Description:
-{{ lib.name }} versions {{ lib.version }} allow attackers to modify the global Object prototype by injecting special keys like "__proto__" or "constructor.prototype" into objects passed to insecure deep merge functions.
+{{ lib.name }} versions {{ lib.version }} allow attackers to modify the global Object prototype by injecting keys like "__proto__" or "constructor.prototype" into deeply merged inputs.
 
-Exploitation:
-1. Inject this payload into a vulnerable endpoint:
+How to Exploit:
+1. Inject this payload into a vulnerable API:
    {{ lib.payloads[0] }}
 
-2. Trigger the backend or frontend code that uses:
-   - lodash.merge(), _.defaultsDeep(), jQuery.extend(), or similar.
+2. Trigger code that uses deep merge functions like:
+   - lodash.merge(), _.defaultsDeep(), jQuery.extend()
 
-3. Confirm success:
-   Open the browser console and type:
-     console.log({}.polluted);  // Should return "true"
+3. Open console:
+   console.log({}.polluted); // Returns: "true"
 
-4. Impact:
-   - Escalate privileges (e.g., isAdmin bypass)
-   - Tamper with all objects in scope
-   - Potential RCE in edge cases
+Impact:
+- Escalate privileges (e.g., isAdmin bypass)
+- Poison global object properties
+- Potential RCE in some backend integrations
 
 Mitigation:
-- Upgrade {{ lib.name }} to a patched version (e.g., >= 4.17.21 for Lodash)
-- Block keys: "__proto__", "constructor", "prototype"
-- Use secure deep merge libraries
+- Upgrade {{ lib.name }} to patched version
+- Sanitize inputs: block ["__proto__", "constructor", "prototype"]
+- Use secure libraries for deep object manipulation
 
 CVE References:
 {% for cve in lib.cves %}
-- https://cve.mitre.org/cgi-bin/cvename.cgi?name={{ cve }}
+- <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name={{ cve }}" target="_blank">{{ cve }}</a>
 {% endfor %}
 </pre>
 {% endfor %}
 
-</body></html>
+<h2>🧠 AI Summary</h2>
+<pre>
+This scan revealed one or more vulnerable JavaScript libraries that expose the application to prototype pollution attacks.
+
+Confirmed polluted properties suggest that global JavaScript objects were successfully manipulated. This type of vulnerability can lead to privilege escalation, logic bypass, and unexpected application behavior.
+
+Immediate remediation is strongly advised. Update affected libraries, sanitize incoming JSON keys, and perform security testing on APIs accepting complex object input.
+</pre>
+
+</body>
+</html>
 """
+
 
 
 # === SCRIPT PARSER TO DETECT VULNERABLE LIBRARIES ===
