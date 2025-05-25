@@ -48,29 +48,11 @@ CVE links
 
 🔥 All in one file — no modules, no nonsense.
 
+It includes:
 
-Console Output Example:
-
-==🧠 Prototype Pollution CVE+Payload Scanner==
-Enter target URL
-
-[*] Fetching target homepage...
-[+] Detected JS library: lodash 4.17.11 (VULNERABLE - CVE-2018-3721, CVE-2019-10744)
-[+] Detected JS library: jquery 3.3.1 (VULNERABLE - CVE-2020-11022, CVE-2020-11023)
-
-[*] Launching payload fuzzing on target endpoints...
-[+] POST /api/ -> 200
-[+] GET  /api/?__proto__=%7Bpolluted%3A%22true%22%7D -> 200
-[+] POST /v1/ -> 404
-[+] GET  /debug/?constructor.prototype.polluted=true -> 200
-...
-
-[*] Payload fuzzing complete.
-
-[*] Launching browser to confirm runtime pollution...
-[+] Found polluted property: polluted
-
-[*] Runtime validation complete.
-
-[+] HTML report written: pollution_report_4d2a1f.html
+🎨 colorama-based styled terminal output
+📈 tqdm progress bar for fuzzing
+🧠 AI-written summary in the HTML report
+📋 Copyable curl buttons per payload
+🔐 CVE severity labels with links
 
