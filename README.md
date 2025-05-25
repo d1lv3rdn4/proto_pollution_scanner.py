@@ -52,7 +52,7 @@ CVE links
 Console Output Example:
 
 ==🧠 Prototype Pollution CVE+Payload Scanner==
-Enter target URL (e.g., https://example.com): https://vulnerable-app.com
+Enter target URL
 
 [*] Fetching target homepage...
 [+] Detected JS library: lodash 4.17.11 (VULNERABLE - CVE-2018-3721, CVE-2019-10744)
