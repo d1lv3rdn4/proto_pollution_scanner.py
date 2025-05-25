@@ -22,3 +22,23 @@ Web apps with exposed API paths.
 Targets found during recon (waybackurls, gau, etc.).
 
 Your own apps to validate unsafe merges, lodash, jQuery merges.
+
+_______________________________________________________________________________________________
+
+🧬 File Name: pollution_beast.py
+
+📦 Requirements (install with pip):
+
+pip install requests playwright jinja2
+playwright install
+
+🛡️ What Makes It "Way More Advanced":
+💉 Combines CVE payloads with general fuzzing.
+
+🕸️ Scans all script tags and versions for vulnerable libs.
+
+✅ Confirms real pollution with browser-based Object.prototype validation.
+
+📄 Pretty HTML report with CVEs, payloads, detection, and runtime result.
+
+🔥 All in one file — no modules, no nonsense.
