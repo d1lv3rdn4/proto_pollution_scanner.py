@@ -1,10 +1,11 @@
 🧬 File Name: proto_pollution_scanner.py
+______________________________________________________
 📦 Requirements (install with pip):
 
 pip install requests playwright jinja2
 playwright install
 
-
+______________________________________________________
 🚀 What This Script Does:
 Fuzzes API endpoints (/api, /v1, etc.) with known prototype pollution payloads.
 
@@ -26,12 +27,12 @@ Your own apps to validate unsafe merges, lodash, jQuery merges.
 _______________________________________________________________________________________________
 
 🧬 File Name: pollution_beast.py
-
+______________________________________________________
 📦 Requirements (install with pip):
 
 pip install requests playwright jinja2
 playwright install
-
+______________________________________________________
 🛡️ What Makes It "Way More Advanced":
 💉 Combines CVE payloads with general fuzzing.
 
