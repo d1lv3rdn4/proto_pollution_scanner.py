@@ -40,5 +40,10 @@ playwright install
 ✅ Confirms real pollution with browser-based Object.prototype validation.
 
 📄 Pretty HTML report with CVEs, payloads, detection, and runtime result.
+✅ What This Adds:
+Full written explanation of how the vulnerability works
+Actual working PoC
+Mitigation steps
+CVE links
 
 🔥 All in one file — no modules, no nonsense.
