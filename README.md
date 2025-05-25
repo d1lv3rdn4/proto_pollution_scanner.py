@@ -51,8 +51,12 @@ CVE links
 It includes:
 
 🎨 colorama-based styled terminal output
+
 📈 tqdm progress bar for fuzzing
+
 🧠 AI-written summary in the HTML report
+
 📋 Copyable curl buttons per payload
+
 🔐 CVE severity labels with links
 
